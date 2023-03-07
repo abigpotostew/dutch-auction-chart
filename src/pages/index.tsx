@@ -2,10 +2,161 @@ import Head from 'next/head'
 import Image from 'next/image'
 import { Inter } from 'next/font/google'
 import styles from 'globalkind/styles/Home.module.css'
+import {Bar} from "react-chartjs-2";
+import {useEffect, useState} from "react";
+import { Chart as ChartJS,BarElement, CategoryScale, Legend, LinearScale, Title, Tooltip} from 'chart.js';
+ChartJS.register(
+
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    Title,
+    Tooltip,
+    Legend
+);
 
 const inter = Inter({ subsets: ['latin'] })
 
 export default function Home() {
+  const [startPrice, setStartPrice] = useState(100)
+  const [endPrice, setEndPrice] = useState(10)
+  const [startTime, setStartTime] = useState(new Date())
+  const [endTime, setEndTime] = useState(new Date(new Date().getTime()+1000*60*60))
+  const [declinePeriodSeconds, setDeclinePeriodSeconds] = useState(60)
+  const [decay, setDecay] = useState(0.85)
+
+  // const [data, setData] = useState< { time:Date;price:number }[]>([])
+  const [data, setData] = useState<any>(null)
+  const [options, setOptions] = useState<any>(null)
+
+
+  useEffect(()=>{
+    //
+    // f(x) = x / ((1 / b - 2) * (1 - x) + 1)
+    const start = Math.round(startTime.getTime()/1000)
+    const end = Math.round(endTime.getTime()/1000)
+    const duration = end - start
+    const priceDiff = startPrice - endPrice
+    const prices: { time:Date;price:number }[] = [];
+    for (let i = 0; i <= duration; i+=declinePeriodSeconds) {
+      const t = i/duration;
+      const v = (1-t / ((1 / decay - 2) * (1 - t) + 1)) * priceDiff + endPrice
+      prices.push({price:parseFloat(v.toFixed(2)),time: new Date((start + i)*1000 )})
+    }
+    // setData(prices)
+    const hoursSinceElapsed = (t:Date)=>Math.round((Math.round(t.getTime()/1000)-start)/(60*60)).toFixed(0).padStart(2,'0')
+    const minutesSinceElapsed = (t:Date)=>Math.round((Math.round(t.getTime()/1000)-start)/60)
+    const labels = prices.map(p=>hoursSinceElapsed(p.time)+':'+minutesSinceElapsed(p.time).toFixed(0).padStart(2,'0')+"")
+    const data = {
+      labels,
+      datasets: [
+        {
+          // label: 'Price At Time',
+          data: prices.map(p=>p.price),
+          backgroundColor: 'rgba(255, 99, 132, 0.5)',
+        },
+
+      ],
+    };
+    const options = {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'bottom' as const,
+        },
+        title: {
+          display: true,
+          text: 'Dutch Auction',
+        },
+      },
+      scales: {
+        xAxes: [{
+          ticks: {
+            major: {
+              fontStyle: 'bold',
+              fontColor: '#FF0000'
+            }
+          },
+          scaleLabel: {
+            display: true,
+            labelString: 'probability'
+
+          }
+        }],
+        yAxes: [ {
+          display: true,
+          scaleLabel: {
+            display: true,
+            labelString: 'Price'
+          }
+        } ]
+      }
+      // scales: {
+// x: {
+        //     ticks: {
+        //         callback: function(label:any) {
+        //             return `\$${this.getLabelForValue(label)}`
+        //         }
+        //     }
+        // },
+        // x:{
+        //       axis: 'x',
+        //       labels: ['Elapsed Time'],
+        //       grid: {
+        //           drawOnChartArea: false
+        //       }
+        // }
+        // secondXAxis: {
+        //     axis: 'x',
+        //   // position: 'bottom' ,
+        //   //   title: 'Elapsed Time',
+        //   // labels: ['Elapsed Time'],
+        //   // display:true,
+        //   scaleLabel: {
+        //     display: true,
+        //     labelString: 'probability'
+        //   },
+        //     // grid: {
+        //     //     drawOnChartArea: false
+        //     // }
+        // }
+
+      // }
+    };
+    const opts2={
+      scales: {
+        y: {
+          title: {
+            display: true,
+            text: 'Price',
+            font: {
+              size: 15
+            }
+          },
+          ticks: {
+            precision: 0
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Elapsed Time',
+            font: {
+              size: 15
+            }
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false,
+        }
+      }
+    }
+    setOptions(opts2)
+    setData(data)
+  }, [startPrice, endPrice, startTime, endTime, declinePeriodSeconds,decay])
+
   return (
     <>
       <Head>
@@ -15,107 +166,20 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main className={styles.main}>
-        <div className={styles.description}>
-          <p>
-            Get started by editing&nbsp;
-            <code className={styles.code}>src/pages/index.tsx</code>
-          </p>
-          <div>
-            <a
-              href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              By{' '}
-              <Image
-                src="/vercel.svg"
-                alt="Vercel Logo"
-                className={styles.vercelLogo}
-                width={100}
-                height={24}
-                priority
-              />
-            </a>
-          </div>
-        </div>
-
-        <div className={styles.center}>
-          <Image
-            className={styles.logo}
-            src="/next.svg"
-            alt="Next.js Logo"
-            width={180}
-            height={37}
-            priority
-          />
-          <div className={styles.thirteen}>
-            <Image
-              src="/thirteen.svg"
-              alt="13"
-              width={40}
-              height={31}
-              priority
-            />
-          </div>
-        </div>
-
-        <div className={styles.grid}>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Docs <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Find in-depth information about Next.js features and&nbsp;API.
-            </p>
-          </a>
-
-          <a
-            href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Learn <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Learn about Next.js in an interactive course with&nbsp;quizzes!
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Templates <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Discover and deploy boilerplate example Next.js&nbsp;projects.
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Deploy <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Instantly deploy your Next.js site to a shareable URL
-              with&nbsp;Vercel.
-            </p>
-          </a>
+        <div >
+          <div>Start Price <input type={"number"} onChange={(e)=>setStartPrice((p)=>parseFloat(e.target.value)||p)} value={startPrice}/></div>
+          <div>End Price <input type={"number"} onChange={(e)=>setEndPrice((p)=>parseFloat(e.target.value)||p)} value={endPrice}/></div>
+          <div>Start Time<input type={"datetime-local"} onChange={(e)=> {
+            setStartTime(new Date(e.target.value))
+          }} value={startTime.toISOString().slice(0,-1)}/></div>
+          <div>End Time<input type={"datetime-local"} onChange={(e)=>setEndTime(new Date(e.target.value))} value={endTime.toISOString().slice(0,-1)}/></div>
+          <div>Decline Period Seconds<input type={"number"} onChange={(e)=>setDeclinePeriodSeconds((p)=>parseInt(e.target.value)||p)} value={declinePeriodSeconds}/></div>
+          <div>Decay<input type={"number"} onChange={(e)=>setDecay((p)=>parseFloat(e.target.value)||p)} value={decay}/></div>
+          {/*<div>{data.map((d,i)=>{*/}
+          {/*    return <div key={i}>{d.price}</div>*/}
+          {/*})*/}
+          {/*}</div>*/}
+          {data && options && <div style={{width:500,height:700}}><Bar style={{width:500,height:700}} options={options} data={data} /></div>}
         </div>
       </main>
     </>
