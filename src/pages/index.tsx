@@ -1,27 +1,28 @@
 import Head from 'next/head'
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
+import {Inter} from 'next/font/google'
 import styles from 'globalkind/styles/Home.module.css'
 import {Bar} from "react-chartjs-2";
 import {useEffect, useState} from "react";
-import { Chart as ChartJS,BarElement, CategoryScale, Legend, LinearScale, Title, Tooltip} from 'chart.js';
-ChartJS.register(
+import {BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Title, Tooltip} from 'chart.js';
+import ChartDataLabels from "chartjs-plugin-datalabels";
 
+ChartJS.register(
     CategoryScale,
     LinearScale,
     BarElement,
     Title,
     Tooltip,
-    Legend
+    Legend,ChartDataLabels
 );
 
-const inter = Inter({ subsets: ['latin'] })
+
+const inter = Inter({subsets: ['latin']})
 
 export default function Home() {
   const [startPrice, setStartPrice] = useState(100)
   const [endPrice, setEndPrice] = useState(10)
   const [startTime, setStartTime] = useState(new Date())
-  const [endTime, setEndTime] = useState(new Date(new Date().getTime()+1000*60*60))
+  const [endTime, setEndTime] = useState(new Date(new Date().getTime() + 1000 * 60 * 60))
   const [declinePeriodSeconds, setDeclinePeriodSeconds] = useState(60)
   const [decay, setDecay] = useState(0.85)
 
@@ -30,29 +31,29 @@ export default function Home() {
   const [options, setOptions] = useState<any>(null)
 
 
-  useEffect(()=>{
+  useEffect(() => {
     //
     // f(x) = x / ((1 / b - 2) * (1 - x) + 1)
-    const start = Math.round(startTime.getTime()/1000)
-    const end = Math.round(endTime.getTime()/1000)
+    const start = Math.round(startTime.getTime() / 1000)
+    const end = Math.round(endTime.getTime() / 1000)
     const duration = end - start
     const priceDiff = startPrice - endPrice
-    const prices: { time:Date;price:number }[] = [];
-    for (let i = 0; i <= duration; i+=declinePeriodSeconds) {
-      const t = i/duration;
-      const v = (1-t / ((1 / decay - 2) * (1 - t) + 1)) * priceDiff + endPrice
-      prices.push({price:parseFloat(v.toFixed(2)),time: new Date((start + i)*1000 )})
+    const prices: { time: Date; price: number }[] = [];
+    for (let i = 0; i <= duration; i += declinePeriodSeconds) {
+      const t = i / duration;
+      const v = (1 - t / ((1 / decay - 2) * (1 - t) + 1)) * priceDiff + endPrice
+      prices.push({price: parseFloat(v.toFixed(2)), time: new Date((start + i) * 1000)})
     }
     // setData(prices)
-    const hoursSinceElapsed = (t:Date)=>Math.round((Math.round(t.getTime()/1000)-start)/(60*60)).toFixed(0).padStart(2,'0')
-    const minutesSinceElapsed = (t:Date)=>Math.round((Math.round(t.getTime()/1000)-start)/60)
-    const labels = prices.map(p=>hoursSinceElapsed(p.time)+':'+minutesSinceElapsed(p.time).toFixed(0).padStart(2,'0')+"")
+    const hoursSinceElapsed = (t: Date) => Math.round((Math.round(t.getTime() / 1000) - start) / (60 * 60)).toFixed(0).padStart(2, '0')
+    const minutesSinceElapsed = (t: Date) => Math.round((Math.round(t.getTime() / 1000) - start) / 60)
+    const labels = prices.map(p => hoursSinceElapsed(p.time) + ':' + minutesSinceElapsed(p.time).toFixed(0).padStart(2, '0') + "")
     const data = {
       labels,
       datasets: [
         {
           // label: 'Price At Time',
-          data: prices.map(p=>p.price),
+          data: prices.map(p => p.price),
           backgroundColor: 'rgba(255, 99, 132, 0.5)',
         },
 
@@ -83,47 +84,17 @@ export default function Home() {
 
           }
         }],
-        yAxes: [ {
+        yAxes: [{
           display: true,
           scaleLabel: {
             display: true,
             labelString: 'Price'
           }
-        } ]
+        }]
       }
-      // scales: {
-// x: {
-        //     ticks: {
-        //         callback: function(label:any) {
-        //             return `\$${this.getLabelForValue(label)}`
-        //         }
-        //     }
-        // },
-        // x:{
-        //       axis: 'x',
-        //       labels: ['Elapsed Time'],
-        //       grid: {
-        //           drawOnChartArea: false
-        //       }
-        // }
-        // secondXAxis: {
-        //     axis: 'x',
-        //   // position: 'bottom' ,
-        //   //   title: 'Elapsed Time',
-        //   // labels: ['Elapsed Time'],
-        //   // display:true,
-        //   scaleLabel: {
-        //     display: true,
-        //     labelString: 'probability'
-        //   },
-        //     // grid: {
-        //     //     drawOnChartArea: false
-        //     // }
-        // }
 
-      // }
     };
-    const opts2={
+    const opts2 = {
       scales: {
         y: {
           title: {
@@ -150,38 +121,57 @@ export default function Home() {
       plugins: {
         legend: {
           display: false,
-        }
+        },
+        datalabels: {
+          display: prices.length <= 60,
+          anchor: "end",
+          align: "top",
+          formatter: Math.round,
+          font: {
+            weight: "bold",
+            size: 8
+          },
+        },
       }
     }
     setOptions(opts2)
     setData(data)
-  }, [startPrice, endPrice, startTime, endTime, declinePeriodSeconds,decay])
+  }, [startPrice, endPrice, startTime, endTime, declinePeriodSeconds, decay])
 
   return (
-    <>
-      <Head>
-        <title>Create Next App</title>
-        <meta name="description" content="Generated by create next app" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-      <main className={styles.main}>
-        <div >
-          <div>Start Price <input type={"number"} onChange={(e)=>setStartPrice((p)=>parseFloat(e.target.value)||p)} value={startPrice}/></div>
-          <div>End Price <input type={"number"} onChange={(e)=>setEndPrice((p)=>parseFloat(e.target.value)||p)} value={endPrice}/></div>
-          <div>Start Time<input type={"datetime-local"} onChange={(e)=> {
-            setStartTime(new Date(e.target.value))
-          }} value={startTime.toISOString().slice(0,-1)}/></div>
-          <div>End Time<input type={"datetime-local"} onChange={(e)=>setEndTime(new Date(e.target.value))} value={endTime.toISOString().slice(0,-1)}/></div>
-          <div>Decline Period Seconds<input type={"number"} onChange={(e)=>setDeclinePeriodSeconds((p)=>parseInt(e.target.value)||p)} value={declinePeriodSeconds}/></div>
-          <div>Decay<input type={"number"} onChange={(e)=>setDecay((p)=>parseFloat(e.target.value)||p)} value={decay}/></div>
-          {/*<div>{data.map((d,i)=>{*/}
-          {/*    return <div key={i}>{d.price}</div>*/}
-          {/*})*/}
-          {/*}</div>*/}
-          {data && options && <div style={{width:500,height:700}}><Bar style={{width:500,height:700}} options={options} data={data} /></div>}
-        </div>
-      </main>
-    </>
+      <>
+        <Head>
+          <title>Create Next App</title>
+          <meta name="description" content="Generated by create next app"/>
+          <meta name="viewport" content="width=device-width, initial-scale=1"/>
+          <link rel="icon" href="/favicon.ico"/>
+        </Head>
+        <main className={styles.main}>
+          <div>
+            <div>Start Price <input type={"number"}
+                                    onChange={(e) => setStartPrice((p) => parseFloat(e.target.value) || p)}
+                                    value={startPrice}/></div>
+            <div>End Price <input type={"number"} onChange={(e) => setEndPrice((p) => parseFloat(e.target.value) || p)}
+                                  value={endPrice}/></div>
+            <div>Start Time<input type={"datetime-local"} onChange={(e) => {
+              setStartTime(new Date(e.target.value))
+            }} value={startTime.toISOString().slice(0, -1)}/></div>
+            <div>End Time<input type={"datetime-local"} onChange={(e) => setEndTime(new Date(e.target.value))}
+                                value={endTime.toISOString().slice(0, -1)}/></div>
+            <div>Decline Period Seconds<input type={"number"}
+                                              onChange={(e) => setDeclinePeriodSeconds((p) => parseInt(e.target.value) || p)}
+                                              value={declinePeriodSeconds}/></div>
+            <div>Decay<input step={0.00001} min={0} max={1} type={"number"} onChange={(e) => setDecay((p) => parseFloat(e.target.value) || p)}
+                             value={decay}/></div>
+            {/*<div>{data.map((d,i)=>{*/}
+            {/*    return <div key={i}>{d.price}</div>*/}
+            {/*})*/}
+            {/*}</div>*/}
+            {data && options &&
+                <div style={{width: 500, height: 700}}><Bar style={{width: 500, height: 700}} options={options}
+                                                            data={data} plugins={[ChartDataLabels]}/></div>}
+          </div>
+        </main>
+      </>
   )
 }
